@@ -1,0 +1,69 @@
+import streamlit as st
+from Bio.Seq import Seq
+from collections import Counter
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# App Config and Title
+st.set_page_config(page_title="DNA Sequence Analyzer", layout="centered")
+st.title("🔬 DNA Sequence Analyzer")
+st.markdown("##### Developed by **Taran**, BSc Bioinformatics")
+
+# Sidebar Input
+st.sidebar.header("🧬 Input DNA Sequence")
+sequence_input = st.sidebar.text_area("Paste your DNA sequence (A/T/G/C only):", height=200)
+
+# Function to calculate codon usage
+def get_codon_usage(seq):
+    codons = [seq[i:i+3] for i in range(0, len(seq)-2, 3)]
+    return Counter(codons)
+
+# Main analysis section
+if st.sidebar.button("Analyze DNA"):
+    if sequence_input:
+        dna_seq = sequence_input.replace("\n", "").replace(" ", "").upper()
+        dna = Seq(dna_seq)
+
+        st.subheader("📊 Results")
+
+        # GC Content
+        gc = (dna.count("G") + dna.count("C")) / len(dna) * 100
+        st.success(f"**GC Content:** {gc:.2f}%")
+
+        # Reverse Complement
+        st.info(f"**Reverse Complement:**\n{dna.reverse_complement()}")
+
+        # Transcription
+        st.info(f"**mRNA (Transcription):**\n{dna.transcribe()}")
+
+        # Translation
+        try:
+            st.info(f"**Protein (Translation):**\n{dna.translate(to_stop=True)}")
+        except:
+            st.warning("⚠️ Cannot translate: sequence may not be in-frame or complete.")
+
+        # Codon Usage
+        codon_usage = get_codon_usage(dna_seq)
+        codon_df = pd.DataFrame(codon_usage.items(), columns=["Codon", "Count"]).sort_values(by="Count", ascending=False)
+
+        st.subheader("📈 Codon Usage Frequency")
+        st.dataframe(codon_df.reset_index(drop=True))
+
+        # --- Nucleotide Frequency Pie Chart ---
+        st.subheader("🧬 Nucleotide Composition")
+        base_counts = Counter(dna_seq)
+        labels = list(base_counts.keys())
+        values = list(base_counts.values())
+        colors = ['#FF9999', '#66B2FF', '#99FF99', '#FFD700']
+
+        fig, ax = plt.subplots()
+        ax.pie(values, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
+        ax.axis('equal')
+        st.pyplot(fig)
+
+        # --- DNA Image ---
+        st.subheader("🧬 DNA Double Helix Structure")
+        st.image("https://upload.wikimedia.org/wikipedia/commons/8/8c/DNA_double_helix_horizontal.png", caption="DNA Structure", use_column_width=True)
+
+    else:
+        st.warning("⚠️ Please enter a valid DNA sequence.")
